@@ -26,16 +26,16 @@ from rucio.db.sqla.session import transactional_session
 
 
 @transactional_session
-def import_rses(rses, session=None):
+def import_rses(rses, vo='def', session=None):
     new_rses = []
     for rse_name in rses:
         rse = rses[rse_name]
         if isinstance(rse.get('rse_type'), string_types):
             rse['rse_type'] = RSEType.from_string(str(rse['rse_type']))
         try:
-            rse_id = rse_module.get_rse_id(rse=rse_name, session=session)
+            rse_id = rse_module.get_rse_id(rse=rse_name, vo=vo, session=session)
         except RSENotFound:
-            rse_id = rse_module.add_rse(rse=rse_name, deterministic=rse.get('deterministic'), volatile=rse.get('volatile'),
+            rse_id = rse_module.add_rse(rse=rse_name, vo=vo, deterministic=rse.get('deterministic'), volatile=rse.get('volatile'),
                                         city=rse.get('city'), region_code=rse.get('region_code'), country_name=rse.get('country_name'),
                                         staging_area=rse.get('staging_area'), continent=rse.get('continent'), time_zone=rse.get('time_zone'),
                                         ISP=rse.get('ISP'), rse_type=rse.get('rse_type'), latitude=rse.get('latitude'),
@@ -105,11 +105,11 @@ def import_rses(rses, session=None):
 
 
 @transactional_session
-def import_distances(distances, session=None):
+def import_distances(distances, vo='def', session=None):
     for src_rse_name in distances:
-        src = rse_module.get_rse_id(rse=src_rse_name, session=session)
+        src = rse_module.get_rse_id(rse=src_rse_name, vo=vo, session=session)
         for dest_rse_name in distances[src_rse_name]:
-            dest = rse_module.get_rse_id(rse=dest_rse_name, session=session)
+            dest = rse_module.get_rse_id(rse=dest_rse_name, vo=vo, session=session)
             distance = distances[src_rse_name][dest_rse_name]
             if 'src_rse_id' in distance:
                 del distance['src_rse_id']
@@ -128,7 +128,7 @@ def import_distances(distances, session=None):
 
 
 @transactional_session
-def import_data(data, session=None):
+def import_data(data, vo='def', session=None):
     """
     Import data to add and update records in Rucio.
 
@@ -138,9 +138,9 @@ def import_data(data, session=None):
     # RSEs
     rses = data.get('rses')
     if rses:
-        import_rses(rses, session=session)
+        import_rses(rses, vo=vo, session=session)
 
     # Distances
     distances = data.get('distances')
     if distances:
-        import_distances(distances, session=session)
+        import_distances(distances, vo=vo, session=session)

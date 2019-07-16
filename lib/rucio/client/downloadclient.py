@@ -525,7 +525,7 @@ class DownloadClient:
             scheme = pfn.split(':')[0]
 
             try:
-                rse = rsemgr.get_rse_info(rse_name)
+                rse = rsemgr.get_rse_info(rse_name, vo=self.client.vo)
             except RSENotFound:
                 logger.warning('%sCould not get info of RSE %s' % (log_prefix, rse_name))
                 continue

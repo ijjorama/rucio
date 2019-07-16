@@ -17,16 +17,17 @@ from rucio.common.schema import validate_schema
 from rucio.core import importer
 
 
-def import_data(data, issuer):
+def import_data(data, issuer, vo='def'):
     """
     Import data to add/update/delete records in Rucio.
 
     :param data: data to be imported.
     :param issuer: the issuer.
+    :param vo: the VO of the issuer.
     """
     kwargs = {'issuer': issuer}
     validate_schema(name='import', obj=data)
-    if not permission.has_permission(issuer=issuer, action='import', kwargs=kwargs):
+    if not permission.has_permission(issuer=issuer, vo=vo, action='import', kwargs=kwargs):
         raise exception.AccessDenied('Account %s can not import data' % issuer)
 
-    return importer.import_data(data)
+    return importer.import_data(data, vo=vo)

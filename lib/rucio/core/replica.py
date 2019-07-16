@@ -297,7 +297,7 @@ def __declare_bad_file_replicas(pfns, rse_id, reason, issuer, status=BadFilesSta
     """
     unknown_replicas = []
     declared_replicas = []
-    rse_info = rsemgr.get_rse_info(rse=get_rse_name(rse_id=rse_id, session=session), session=session)
+    rse_info = rsemgr.get_rse_info(rse_id=rse_id, session=session)
     replicas = []
     proto = rsemgr.create_protocol(rse_info, 'read', scheme=scheme)
     if rse_info['deterministic']:
@@ -538,7 +538,7 @@ def get_did_from_pfns(pfns, rse_id=None, session=None):
         dict_rse[rse_id] = pfns
     for rse_id in dict_rse:
         pfns = dict_rse[rse_id]
-        rse_info = rsemgr.get_rse_info(rse=get_rse_name(rse_id=rse_id, session=session), session=session)
+        rse_info = rsemgr.get_rse_info(rse_id=rse_id, session=session)
         pfndict = {}
         proto = rsemgr.create_protocol(rse_info, 'read', scheme=scheme)
         if rse_info['deterministic']:
@@ -874,7 +874,7 @@ def _list_replicas(dataset_clause, file_clause, state_clause, show_pfns,
 
             if show_pfns and rse_id:
                 if rse_id not in rse_info:
-                    rse_info[rse_id] = rsemgr.get_rse_info(rse=get_rse_name(rse_id=rse_id, session=session), session=session)
+                    rse_info[rse_id] = rsemgr.get_rse_info(rse_id=rse_id, session=session)
 
                 # assign scheme priorities, and don't forget to exclude disabled protocols
                 # 0 in RSE protocol definition = disabled, 1 = highest priority
@@ -1312,7 +1312,7 @@ def add_replicas(rse_id, files, account, ignore_availability=True,
             pfns.append(file['pfn'])
 
     if pfns:
-        p = rsemgr.create_protocol(rse_settings=rsemgr.get_rse_info(rse=replica_rse['rse'], session=session), operation='write', scheme=scheme)
+        p = rsemgr.create_protocol(rse_settings=rsemgr.get_rse_info(rse_id=rse_id, session=session), operation='write', scheme=scheme)
         if not replica_rse.deterministic:
             pfns = p.parse_pfns(pfns=pfns)
             for file in files:

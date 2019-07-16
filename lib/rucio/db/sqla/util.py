@@ -134,6 +134,8 @@ def create_base_vo():
 def create_root_account():
     """ Inserts the default root account to an existing database. Make sure to change the default password later. """
 
+    multi_vo = bool(config_get('common', 'multi_vo', False, False))
+
     up_id = 'ddmlab'
     up_pwd = '2ccee6f6dd1bc2269cddd7cd5e47578e98e430539807c36df23fab7dd13e7583'
     up_email = 'ph-adp-ddm-lab@cern.ch'
@@ -164,7 +166,12 @@ def create_root_account():
 
     s = session.get_session()
 
-    account = models.Account(account=InternalAccount('root'), account_type=AccountType.SERVICE, status=AccountStatus.ACTIVE)
+    if multi_vo:
+        access = 'super_root'
+    else:
+        access = 'root'
+
+    account = models.Account(account=InternalAccount(access, 'def'), account_type=AccountType.SERVICE, status=AccountStatus.ACTIVE)
 
     identity1 = models.Identity(identity=up_id, identity_type=IdentityType.USERPASS, password=up_pwd, salt='0', email=up_email)
     iaa1 = models.IdentityAccountAssociation(identity=identity1.identity, identity_type=identity1.identity_type, account=account.account, is_default=True)

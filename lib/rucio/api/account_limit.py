@@ -22,30 +22,32 @@ from rucio.core.account import account_exists
 from rucio.core.rse import get_rse_id, get_rse_name
 
 
-def get_rse_account_usage(rse):
+def get_rse_account_usage(rse, vo='def'):
     """
     Returns the account limit and usage for all for all accounts on a RSE.
 
     :param rse:      The RSE name.
+    :param vo:       The VO to act on.
     :return:         List of dictionnaries.
     """
-    rse_id = get_rse_id(rse=rse)
+    rse_id = get_rse_id(rse=rse, vo=vo)
 
     return [api_update_return_dict(d) for d in account_limit_core.get_rse_account_usage(rse_id=rse_id)]
 
 
-def get_account_limits(account):
+def get_account_limits(account, vo='def'):
     """
     Lists the limitation names/values for the specified account name.
 
     REST API: http://<host>:<port>/rucio/account/<account>/limits
 
     :param account:     The account name.
+    :param vo:          The VO to act on.
 
     :returns: The account limits.
     """
 
-    account = InternalAccount(account)
+    account = InternalAccount(account, vo=vo)
 
     rse_instead_id = {}
     for elem in account_limit_core.get_account_limits(account=account).items():
@@ -53,7 +55,7 @@ def get_account_limits(account):
     return rse_instead_id
 
 
-def get_account_limit(account, rse):
+def get_account_limit(account, rse, vo='def'):
     """
     Lists the limitation names/values for the specified account name and rse name.
 
@@ -61,17 +63,18 @@ def get_account_limit(account, rse):
 
     :param account:     The account name.
     :param rse:         The rse name.
+    :param vo:          The VO to act on.
 
     :returns: The account limit.
     """
 
-    account = InternalAccount(account)
+    account = InternalAccount(account, vo=vo)
 
-    rse_id = get_rse_id(rse=rse)
+    rse_id = get_rse_id(rse=rse, vo=vo)
     return {rse: account_limit_core.get_account_limit(account=account, rse_id=rse_id)}
 
 
-def set_account_limit(account, rse, bytes, issuer):
+def set_account_limit(account, rse, bytes, issuer, vo='def'):
     """
     Set an account limit..
 
@@ -79,14 +82,15 @@ def set_account_limit(account, rse, bytes, issuer):
     :param rse:     The rse name.
     :param bytes:   The limit in bytes.
     :param issuer:  The issuer account_core.
+    :param vo:      The VO to act on.
     """
-    rse_id = get_rse_id(rse=rse)
+    rse_id = get_rse_id(rse=rse, vo=vo)
 
     kwargs = {'account': account, 'rse': rse, 'rse_id': rse_id, 'bytes': bytes}
-    if not rucio.api.permission.has_permission(issuer=issuer, action='set_account_limit', kwargs=kwargs):
+    if not rucio.api.permission.has_permission(issuer=issuer, vo=vo, action='set_account_limit', kwargs=kwargs):
         raise rucio.common.exception.AccessDenied('Account %s can not set account limits.' % (issuer))
 
-    account = InternalAccount(account)
+    account = InternalAccount(account, vo=vo)
 
     if not account_exists(account=account):
         raise rucio.common.exception.AccountNotFound('Account %s does not exist' % (account))
@@ -94,23 +98,24 @@ def set_account_limit(account, rse, bytes, issuer):
     account_limit_core.set_account_limit(account=account, rse_id=rse_id, bytes=bytes)
 
 
-def delete_account_limit(account, rse, issuer):
+def delete_account_limit(account, rse, issuer, vo='def'):
     """
     Delete an account limit..
 
     :param account: The account name.
     :param rse:     The rse name.
     :param issuer:  The issuer account_core.
+    :param vo:      The VO to act on.
 
     :returns: True if successful; False otherwise.
     """
 
-    rse_id = get_rse_id(rse=rse)
+    rse_id = get_rse_id(rse=rse, vo=vo)
     kwargs = {'account': account, 'rse': rse, 'rse_id': rse_id}
-    if not rucio.api.permission.has_permission(issuer=issuer, action='delete_account_limit', kwargs=kwargs):
+    if not rucio.api.permission.has_permission(issuer=issuer, vo=vo, action='delete_account_limit', kwargs=kwargs):
         raise rucio.common.exception.AccessDenied('Account %s can not delete account limits.' % (issuer))
 
-    account = InternalAccount(account)
+    account = InternalAccount(account, vo=vo)
 
     if not account_exists(account=account):
         raise rucio.common.exception.AccountNotFound('Account %s does not exist' % (account))
@@ -118,13 +123,14 @@ def delete_account_limit(account, rse, issuer):
     return account_limit_core.delete_account_limit(account=account, rse_id=rse_id)
 
 
-def get_account_usage(account, rse, issuer):
+def get_account_usage(account, rse, issuer, vo='def'):
     """
     Get the account usage and connect it with (if available) the account limits of the account.
 
     :param account:  The account to read.
     :param rse:      The rse to read (If none, get all).
     :param issuer:   The issuer account.
+    :param vo:       The VO to act on.
 
     :returns:        List of dicts {'rse_id', 'bytes_used', 'files_used', 'bytes_limit'}
     """
@@ -132,12 +138,12 @@ def get_account_usage(account, rse, issuer):
     rse_id = None
 
     if rse:
-        rse_id = get_rse_id(rse=rse)
+        rse_id = get_rse_id(rse=rse, vo=vo)
     kwargs = {'account': account, 'rse': rse, 'rse_id': rse_id}
-    if not rucio.api.permission.has_permission(issuer=issuer, action='get_account_usage', kwargs=kwargs):
+    if not rucio.api.permission.has_permission(issuer=issuer, vo=vo, action='get_account_usage', kwargs=kwargs):
         raise rucio.common.exception.AccessDenied('Account %s can not list account usage.' % (issuer))
 
-    account = InternalAccount(account)
+    account = InternalAccount(account, vo=vo)
 
     if not account_exists(account=account):
         raise rucio.common.exception.AccountNotFound('Account %s does not exist' % (account))

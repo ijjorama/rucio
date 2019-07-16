@@ -109,7 +109,8 @@ def has_permission(issuer, action, kwargs):
             'get_signed_url': perm_get_signed_url,
             'add_bad_pfns': perm_add_bad_pfns,
             'del_account_identity': perm_del_account_identity,
-            'del_identity': perm_del_identity}
+            'del_identity': perm_del_identity,
+            'add_vo': perm_add_vo}
 
     return perm.get(action, perm_default)(issuer=issuer, kwargs=kwargs)
 
@@ -1042,3 +1043,14 @@ def perm_add_bad_pfns(issuer, kwargs):
     elif kwargs['state'] == str(BadPFNStatus.SUSPICIOUS):
         return True
     return _is_root(issuer)
+
+
+def perm_add_vo(issuer, kwargs):
+    """
+    Checks if an account can add a VO.
+
+    :param issuer: Account identifier which issues the command.
+    :param kwargs: List of arguments for the action.
+    :returns: True if account is allowed, otherwise False
+    """
+    return (issuer.internal == 'super_root')

@@ -77,7 +77,7 @@ class AccountLimit(RucioController):
             raise generate_http_error(400, 'TypeError', 'body must be a json dictionary')
 
         try:
-            set_account_limit(account=account, rse=rse, bytes=bytes, issuer=ctx.env.get('issuer'))
+            set_account_limit(account=account, rse=rse, bytes=bytes, issuer=ctx.env.get('issuer'), vo=ctx.env.get('vo'))
         except AccessDenied as exception:
             raise generate_http_error(401, 'AccessDenied', exception.args[0])
         except RSENotFound as exception:
@@ -106,7 +106,7 @@ class AccountLimit(RucioController):
         :param rse:                  RSE name.
         """
         try:
-            delete_account_limit(account=account, rse=rse, issuer=ctx.env.get('issuer'))
+            delete_account_limit(account=account, rse=rse, issuer=ctx.env.get('issuer'), vo=ctx.env.get('vo'))
         except AccessDenied as exception:
             raise generate_http_error(401, 'AccessDenied', exception.args[0])
         except AccountNotFound as exception:

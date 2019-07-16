@@ -184,6 +184,8 @@ def set_transfers_state(transfers, submitted_at, session=None):
                    'external-id': transfers[request_id]['external_id'],
                    'external-host': transfers[request_id]['external_host'],
                    'queued_at': str(submitted_at)}
+            if transfers[request_id]['scope'].vo != 'def':
+                msg['vo'] = transfers[request_id]['scope'].vo
 
             if msg['request-type']:
                 transfer_status = '%s-%s' % (msg['request-type'], msg['state'])
@@ -461,13 +463,13 @@ def get_transfer_requests_and_source_replicas(total_workers=0, worker_number=0, 
 
                 # Get destination rse information
                 if dest_rse_id not in rses_info:
-                    rses_info[dest_rse_id] = rsemgr.get_rse_info(rse=dest_rse_name, session=session)
+                    rses_info[dest_rse_id] = rsemgr.get_rse_info(rse_id=dest_rse_id, session=session)
                 if dest_rse_id not in rse_attrs:
                     rse_attrs[dest_rse_id] = get_rse_attributes(dest_rse_id, session=session)
 
                 # Get the source rse information
                 if source_rse_id not in rses_info:
-                    rses_info[source_rse_id] = rsemgr.get_rse_info(rse=source_rse_name, session=session)
+                    rses_info[source_rse_id] = rsemgr.get_rse_info(rse_id=source_rse_id, session=session)
                 if source_rse_id not in rse_attrs:
                     rse_attrs[source_rse_id] = get_rse_attributes(source_rse_id, session=session)
 
@@ -674,7 +676,7 @@ def get_transfer_requests_and_source_replicas(total_workers=0, worker_number=0, 
 
                 # Compute the source rse information
                 if source_rse_id not in rses_info:
-                    rses_info[source_rse_id] = rsemgr.get_rse_info(rse=source_rse_name, session=session)
+                    rses_info[source_rse_id] = rsemgr.get_rse_info(rse_id=source_rse_id, session=session)
 
                 # Get protocol
                 source_rse_id_key = '%s_%s' % (source_rse_id, '_'.join(current_schemes))

@@ -17,6 +17,7 @@ from nose.tools import assert_equal, assert_in
 
 from rucio.client.accountclient import AccountClient
 from rucio.client.accountlimitclient import AccountLimitClient
+from rucio.common.config import config_get_bool
 from rucio.common.types import InternalAccount
 from rucio.core import account_limit
 from rucio.core.account import add_account
@@ -28,16 +29,21 @@ class TestCoreAccountLimits():
 
     @classmethod
     def setUpClass(cls):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            cls.vo = {'vo': 'tst'}
+        else:
+            cls.vo = {}
+
         # Add test account
-        cls.account = InternalAccount(''.join(random.choice(string.ascii_uppercase) for x in range(10)))
+        cls.account = InternalAccount(''.join(random.choice(string.ascii_uppercase) for x in range(10)), **cls.vo)
         add_account(account=cls.account, type=AccountType.USER, email='rucio@email.com')
 
         # Add test RSE
         cls.rse1 = 'MOCK'
         cls.rse2 = 'MOCK2'
 
-        cls.rse1_id = get_rse_id(rse=cls.rse1)
-        cls.rse2_id = get_rse_id(rse=cls.rse2)
+        cls.rse1_id = get_rse_id(rse=cls.rse1, **cls.vo)
+        cls.rse2_id = get_rse_id(rse=cls.rse2, **cls.vo)
 
     def test_set_account_limit(self):
         """ ACCOUNT_LIMIT (CORE): Setting account limit """
@@ -51,16 +57,21 @@ class TestAccountClient():
 
     @classmethod
     def setUpClass(cls):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            cls.vo = {'vo': 'tst'}
+        else:
+            cls.vo = {}
+
         # Add test account
-        cls.account = InternalAccount(''.join(random.choice(string.ascii_uppercase) for x in range(10)))
+        cls.account = InternalAccount(''.join(random.choice(string.ascii_uppercase) for x in range(10)), **cls.vo)
         add_account(account=cls.account, type=AccountType.USER, email='rucio@email.com')
 
         # Add test RSE
         cls.rse1 = 'MOCK'
         cls.rse2 = 'MOCK2'
 
-        cls.rse1_id = get_rse_id(rse=cls.rse1)
-        cls.rse2_id = get_rse_id(rse=cls.rse2)
+        cls.rse1_id = get_rse_id(rse=cls.rse1, **cls.vo)
+        cls.rse2_id = get_rse_id(rse=cls.rse2, **cls.vo)
 
     def setup(self):
         self.client = AccountClient()

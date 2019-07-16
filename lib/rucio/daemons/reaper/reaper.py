@@ -175,7 +175,7 @@ def reaper(rses, worker_number=1, child_number=1, total_children=1, chunk_size=1
                     logging.info('Reaper %s-%s: Running on RSE %s %s', worker_number, child_number,
                                  rse['rse'], nothing_to_do.get(rse['id']))
 
-                    rse_info = rsemgr.get_rse_info(rse['rse'])
+                    rse_info = rsemgr.get_rse_info(rse_id=rse['id'])
                     rse_protocol = rse_core.get_rse_protocols(rse_id=rse['id'])
 
                     if not rse_protocol['availability_delete']:

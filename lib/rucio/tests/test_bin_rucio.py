@@ -41,7 +41,7 @@ from rucio.client.accountlimitclient import AccountLimitClient
 from rucio.client.didclient import DIDClient
 from rucio.client.replicaclient import ReplicaClient
 from rucio.client.ruleclient import RuleClient
-from rucio.common.config import config_get
+from rucio.common.config import config_get, config_get_bool
 from rucio.common.types import InternalScope
 from rucio.common.utils import generate_uuid, md5
 from rucio.core.rse import add_rse_attribute, get_rse_id
@@ -52,6 +52,11 @@ from rucio.rse import rsemanager as rsemgr
 class TestBinRucio():
 
     def setup(self):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            self.vo = {'vo': 'tst'}
+        else:
+            self.vo = {}
+
         try:
             remove('/tmp/.rucio_root/auth_token_root')
         except OSError as e:
@@ -62,7 +67,7 @@ class TestBinRucio():
         self.auth_host = config_get('client', 'auth_host')
         self.user = 'data13_hip'
         self.def_rse = 'MOCK4'
-        self.def_rse_id = get_rse_id(rse=self.def_rse)
+        self.def_rse_id = get_rse_id(rse=self.def_rse, **self.vo)
         self.did_client = DIDClient()
         self.replica_client = ReplicaClient()
         self.rule_client = RuleClient()
@@ -261,10 +266,10 @@ class TestBinRucio():
         # removing replica -> file on RSE should be overwritten
         # (simulating an upload error, where a part of the file is uploaded but the replica is not registered)
         db_session = session.get_session()
-        db_session.query(models.RSEFileAssociation).filter_by(name=tmp_file1_name, scope=InternalScope(self.user)).delete()
+        db_session.query(models.RSEFileAssociation).filter_by(name=tmp_file1_name, scope=InternalScope(self.user, **self.vo)).delete()
         db_session.query(models.ReplicaLock).delete()
-        db_session.query(models.ReplicationRule).filter_by(name=tmp_file1_name, scope=InternalScope(self.user)).delete()
-        db_session.query(models.DataIdentifier).filter_by(name=tmp_file1_name, scope=InternalScope(self.user)).delete()
+        db_session.query(models.ReplicationRule).filter_by(name=tmp_file1_name, scope=InternalScope(self.user, **self.vo)).delete()
+        db_session.query(models.DataIdentifier).filter_by(name=tmp_file1_name, scope=InternalScope(self.user, **self.vo)).delete()
         db_session.commit()
         tmp_file4 = file_generator()
         checksum_tmp_file4 = md5(tmp_file4)
@@ -582,7 +587,7 @@ class TestBinRucio():
         print(out, err)
         remove(tmp_file1)
         db_session = session.get_session()
-        db_session.query(models.DataIdentifier).filter_by(scope=InternalScope(self.user), name=dataset_name).one().length = 15
+        db_session.query(models.DataIdentifier).filter_by(scope=InternalScope(self.user, **self.vo), name=dataset_name).one().length = 15
         db_session.commit()
         cmd = 'rucio download --dir /tmp --scope {0} --filter length=100'.format(self.user)
         exitcode, out, err = execute(cmd)
@@ -610,7 +615,7 @@ class TestBinRucio():
         print(out, err)
         remove(tmp_file1)
         db_session = session.get_session()
-        db_session.query(models.DataIdentifier).filter_by(scope=InternalScope(self.user), name=dataset_name).one().length = 1
+        db_session.query(models.DataIdentifier).filter_by(scope=InternalScope(self.user, **self.vo), name=dataset_name).one().length = 1
         db_session.commit()
         cmd = 'rucio download --dir /tmp {0}:{1} --filter length=10'.format(self.user, dataset_name[0:-1] + '*')
         exitcode, out, err = execute(cmd)
@@ -667,7 +672,7 @@ class TestBinRucio():
         lfn = {'name': filename[5:], 'scope': self.user, 'bytes': filesize, 'md5': file_md5}
         # user uploads file
         self.replica_client.add_replicas(files=[lfn], rse=self.def_rse)
-        rse_settings = rsemgr.get_rse_info(rse=self.def_rse)
+        rse_settings = rsemgr.get_rse_info(rse=self.def_rse, **self.vo)
         protocol = rsemgr.create_protocol(rse_settings, 'write')
         protocol.connect()
         pfn = protocol.lfns2pfns(lfn).values()[0]
@@ -701,7 +706,7 @@ class TestBinRucio():
         lfn = {'name': filename[5:], 'scope': self.user, 'bytes': filesize, 'md5': '0123456789abcdef0123456789abcdef'}
         # user uploads file
         self.replica_client.add_replicas(files=[lfn], rse=self.def_rse)
-        rse_settings = rsemgr.get_rse_info(rse=self.def_rse)
+        rse_settings = rsemgr.get_rse_info(rse=self.def_rse, **self.vo)
         protocol = rsemgr.create_protocol(rse_settings, 'write')
         protocol.connect()
         pfn = protocol.lfns2pfns(lfn).values()[0]

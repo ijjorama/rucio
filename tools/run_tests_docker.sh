@@ -19,6 +19,7 @@
 # - Hannes Hansen <hannes.jakob.hansen@cern.ch>, 2018-2019
 # - Mario Lassnig <mario.lassnig@cern.ch>, 2019
 
+kill $(ps -o pid -C memcached h)
 memcached -u root -d
 
 function usage {
@@ -59,15 +60,22 @@ if [ -f /tmp/rucio.db ]; then
     chmod 777 /tmp/rucio.db
 fi
 
-echo 'Running full alembic migration'
-alembic -c /opt/rucio/etc/alembic.ini downgrade base
+#echo 'Running full alembic migration'
+#alembic -c /opt/rucio/etc/alembic.ini downgrade base
+#if [ $? != 0 ]; then
+#    echo 'Failed to downgrade the database!'
+#    exit 1
+#fi
+#alembic -c /opt/rucio/etc/alembic.ini upgrade head
+#if [ $? != 0 ]; then
+#    echo 'Failed to upgrade the database!'
+#    exit 1
+#fi
+
+echo 'Bootstrap tests: Create jdoe account/mock scope'
+tools/bootstrap_tests.py
 if [ $? != 0 ]; then
-    echo 'Failed to downgrade the database!'
-    exit 1
-fi
-alembic -c /opt/rucio/etc/alembic.ini upgrade head
-if [ $? != 0 ]; then
-    echo 'Failed to upgrade the database!'
+    echo 'Failed to bootstrap!'
     exit 1
 fi
 
@@ -82,13 +90,6 @@ echo 'Sync metadata keys'
 tools/sync_meta.py
 if [ $? != 0 ]; then
     echo 'Failed to sync!'
-    exit 1
-fi
-
-echo 'Bootstrap tests: Create jdoe account/mock scope'
-tools/bootstrap_tests.py
-if [ $? != 0 ]; then
-    echo 'Failed to bootstrap!'
     exit 1
 fi
 

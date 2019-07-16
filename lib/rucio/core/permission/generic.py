@@ -25,6 +25,7 @@
 import rucio.core.authentication
 import rucio.core.scope
 from rucio.core.account import list_account_attributes, has_account_attribute
+from rucio.core.lifetime_exception import list_exceptions
 from rucio.core.rse import list_rse_attributes
 from rucio.db.sqla.constants import IdentityType
 
@@ -106,7 +107,8 @@ def has_permission(issuer, action, kwargs):
             'get_signed_url': perm_get_signed_url,
             'add_bad_pfns': perm_add_bad_pfns,
             'del_account_identity': perm_del_account_identity,
-            'del_identity': perm_del_identity}
+            'del_identity': perm_del_identity,
+            'add_vo': perm_add_vo}
 
     return perm.get(action, perm_default)(issuer=issuer, kwargs=kwargs)
 
@@ -834,6 +836,10 @@ def perm_update_lifetime_exceptions(issuer, kwargs):
     :param issuer: Account identifier which issues the command.
     :returns: True if account is allowed to call the API call, otherwise False
     """
+    if kwargs['vo'] is not None:
+        exceptions = next(list_exceptions(exception_id=kwargs['exception_id'], states=False))
+        if exceptions['scope'].vo != kwargs['vo']:
+            return False
     return _is_root(issuer) or has_account_attribute(account=issuer, key='admin')
 
 
@@ -866,3 +872,14 @@ def perm_add_bad_pfns(issuer, kwargs):
     :returns: True if account is allowed, otherwise False
     """
     return _is_root(issuer)
+
+
+def perm_add_vo(issuer, kwargs):
+    """
+    Checks if an account can add a VO.
+
+    :param issuer: Account identifier which issues the command.
+    :param kwargs: List of arguments for the action.
+    :returns: True if account is allowed, otherwise False
+    """
+    return (issuer.internal == 'super_root')

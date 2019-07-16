@@ -75,7 +75,7 @@ def generate_rse(endpoint, token):
             'lan': {'read': 1, 'write': 1, 'delete': 1},
             'wan': {'read': 1, 'write': 1, 'delete': 1}}}
 
-    rse_id = rse.add_rse(rse_name)
+    rse_id = rse.add_rse(rse_name, vo='def')
     tmp_proto['hostname'] = endpoint.split(':')[1][2:]
     tmp_proto['port'] = endpoint.split(':')[2].split('/')[0]
     tmp_proto['prefix'] = '/'.join([''] + endpoint.split(':')[2].split('/')[1:])
@@ -85,9 +85,9 @@ def generate_rse(endpoint, token):
     rse.add_protocol(rse_id=rse_id, parameter=tmp_proto)
     rse.add_rse_attribute(rse_id=rse_id, key='fts', value='https://fts3-pilot.cern.ch:8446')
 
-    account_limit.set_account_limit(account=InternalAccount('root'), rse_id=rsemanager.get_rse_info(rse_name)['id'], bytes=-1)
+    account_limit.set_account_limit(account=InternalAccount('root', vo='def'), rse_id=rse_id, bytes=-1)
 
-    return rsemanager.get_rse_info(rse_name)
+    return rsemanager.get_rse_info(rse_id=rse_id)
 
 
 def request_transfer(loop=1, src=None, dst=None,

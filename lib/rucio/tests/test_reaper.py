@@ -20,6 +20,7 @@
 
 import nose.tools
 
+from rucio.common.config import config_get_bool
 from rucio.common.utils import execute, generate_uuid
 from rucio.common.types import InternalAccount, InternalScope
 from rucio.core import rse as rse_core
@@ -30,14 +31,19 @@ from rucio.clis.daemons.reaper.reaper import main
 
 def test_reaper():
     """ REAPER (DAEMON): Test the reaper daemon."""
+    if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+        vo = {'vo': 'tst'}
+    else:
+        vo = {}
+
     nb_files = 30
     file_size = 2147483648  # 2G
-    rse_id = rse_core.get_rse_id(rse='MOCK')
+    rse_id = rse_core.get_rse_id(rse='MOCK', **vo)
 
     for i in range(nb_files):
-        replica_core.add_replica(rse_id=rse_id, scope=InternalScope('data13_hip'),
+        replica_core.add_replica(rse_id=rse_id, scope=InternalScope('data13_hip', **vo),
                                  name='lfn' + generate_uuid(), bytes=file_size,
-                                 account=InternalAccount('root'), adler32=None, md5=None)
+                                 account=InternalAccount('root', **vo), adler32=None, md5=None)
 
     rse_core.set_rse_usage(rse_id=rse_id, source='srm', used=nb_files * file_size, free=800)
     rse_core.set_rse_limits(rse_id=rse_id, name='MinFreeSpace', value=10737418240)

@@ -20,6 +20,7 @@
 from datetime import datetime
 from nose.tools import assert_equal
 
+from rucio.common.config import config_get_bool
 from rucio.common.types import InternalAccount, InternalScope
 from rucio.common.utils import generate_uuid
 from rucio.core.config import set, remove_option
@@ -34,14 +35,19 @@ from rucio.db.sqla import session, models, constants
 class TestThrottlerGroupedFIFO(object):
     @classmethod
     def setUpClass(cls):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            cls.vo = {'vo': 'tst'}
+        else:
+            cls.vo = {}
+
         cls.db_session = session.get_session()
         cls.dialect = cls.db_session.bind.dialect.name
         cls.dest_rse = 'MOCK'
         cls.source_rse = 'MOCK4'
-        cls.dest_rse_id = get_rse_id(cls.dest_rse)
-        cls.source_rse_id = get_rse_id(cls.source_rse)
-        cls.scope = InternalScope('mock')
-        cls.account = InternalAccount('root')
+        cls.dest_rse_id = get_rse_id(cls.dest_rse, **cls.vo)
+        cls.source_rse_id = get_rse_id(cls.source_rse, **cls.vo)
+        cls.scope = InternalScope('mock', **cls.vo)
+        cls.account = InternalAccount('root', **cls.vo)
         cls.user_activity = 'User Subscription'
         cls.all_activities = 'all_activities'
         set('throttler_release_strategy', 'dest_%s' % cls.dest_rse_id, 'grouped_fifo')
@@ -370,13 +376,18 @@ class TestThrottlerGroupedFIFO(object):
 class TestThrottlerFIFO(object):
     @classmethod
     def setUpClass(cls):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            cls.vo = {'vo': 'tst'}
+        else:
+            cls.vo = {}
+
         cls.db_session = session.get_session()
         cls.dest_rse = 'MOCK'
         cls.source_rse = 'MOCK4'
-        cls.dest_rse_id = get_rse_id(cls.dest_rse)
-        cls.source_rse_id = get_rse_id(cls.source_rse)
-        cls.scope = InternalScope('mock')
-        cls.account = InternalAccount('root')
+        cls.dest_rse_id = get_rse_id(cls.dest_rse, **cls.vo)
+        cls.source_rse_id = get_rse_id(cls.source_rse, **cls.vo)
+        cls.scope = InternalScope('mock', **cls.vo)
+        cls.account = InternalAccount('root', **cls.vo)
         cls.user_activity = 'User Subscription'
         cls.all_activities = 'all_activities'
         set_rse_transfer_limits(cls.dest_rse_id, cls.user_activity, max_transfers=1, session=cls.db_session)

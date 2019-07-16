@@ -24,7 +24,7 @@ from paste.fixture import TestApp
 
 from rucio.api.account import add_account, account_exists, del_account, update_account, get_account_info
 from rucio.client.accountclient import AccountClient
-from rucio.common.config import config_get
+from rucio.common.config import config_get, config_get_bool
 from rucio.common.exception import AccountNotFound, Duplicate, InvalidObject
 from rucio.common.types import InternalAccount
 from rucio.common.utils import generate_uuid as uuid
@@ -37,48 +37,61 @@ from rucio.web.rest.authentication import APP as auth_app
 
 
 class TestAccountCoreApi():
+    def setup(self):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            self.vo = {'vo': 'tst'}
+        else:
+            self.vo = {}
 
     def test_create_and_check_for_user(self):
         """ ACCOUNT (CORE): Test the creation, query, and deletion of an account """
         usr = account_name_generator()
         invalid_usr = account_name_generator()
-        add_account(usr, 'USER', 'rucio@email.com', 'root')
-        assert_equal(account_exists(usr), True)
-        assert_equal(account_exists(invalid_usr), False)
-        del_account(usr, 'root')
+        add_account(usr, 'USER', 'rucio@email.com', 'root', **self.vo)
+        assert_equal(account_exists(usr, **self.vo), True)
+        assert_equal(account_exists(invalid_usr, **self.vo), False)
+        del_account(usr, 'root', **self.vo)
 
     def test_update_account(self):
         """ ACCOUNT (CORE): Test changing and quering account parameters """
         usr = account_name_generator()
-        add_account(usr, 'USER', 'rucio@email.com', 'root')
-        assert_equal(get_account_info(usr)['status'], AccountStatus.ACTIVE)  # Should be active by default
-        update_account(account=usr, key='status', value=AccountStatus.SUSPENDED)
-        assert_equal(get_account_info(usr)['status'], AccountStatus.SUSPENDED)
-        update_account(account=usr, key='status', value=AccountStatus.ACTIVE)
-        assert_equal(get_account_info(usr)['status'], AccountStatus.ACTIVE)
-        update_account(account=usr, key='email', value='test')
-        email = get_account_info(account=usr)['email']
+        add_account(usr, 'USER', 'rucio@email.com', 'root', **self.vo)
+        assert_equal(get_account_info(usr, **self.vo)['status'], AccountStatus.ACTIVE)  # Should be active by default
+        update_account(account=usr, key='status', value=AccountStatus.SUSPENDED, **self.vo)
+        assert_equal(get_account_info(usr, **self.vo)['status'], AccountStatus.SUSPENDED)
+        update_account(account=usr, key='status', value=AccountStatus.ACTIVE, **self.vo)
+        assert_equal(get_account_info(usr, **self.vo)['status'], AccountStatus.ACTIVE)
+        update_account(account=usr, key='email', value='test', **self.vo)
+        email = get_account_info(account=usr, **self.vo)['email']
         assert_equal(email, 'test')
-        del_account(usr, 'root')
+        del_account(usr, 'root', **self.vo)
 
     def test_list_account_identities(self):
         """ ACCOUNT (CORE): Test listing of account identities """
         email = 'email'
         identity = uuid()
         identity_type = IdentityType.USERPASS
-        account = InternalAccount('root')
+        account = InternalAccount('root', **self.vo)
         add_account_identity(identity, identity_type, account, email, password='secret')
         identities = list_identities(account)
         assert_in({'type': identity_type, 'identity': identity, 'email': email}, identities)
 
 
 class TestAccountRestApi():
+    def setup(self):
+        if config_get_bool('common', 'multi_vo', raise_exception=False, default=False):
+            self.vo_header = {'X-Rucio-VO': 'tst'}
+            self.vo = {'vo': 'tst'}
+        else:
+            self.vo_header = {}
+            self.vo = {}
 
     def test_create_user_success(self):
         """ ACCOUNT (REST): send a POST to create a new user """
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
 
         assert_equal(res1.status, 200)
@@ -95,6 +108,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
 
         assert_equal(res1.status, 200)
@@ -111,6 +125,7 @@ class TestAccountRestApi():
         """ ACCOUNT (REST): send a POST with a non json body"""
         mw = []
         headers = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers.update(self.vo_header)
         res = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers, expect_errors=True)
         assert_equal(res.status, 200)
         token = str(res.header('X-Rucio-Auth-Token'))
@@ -127,6 +142,7 @@ class TestAccountRestApi():
         """ ACCOUNT (REST): send a POST with a missing parameter"""
         mw = []
         headers = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers.update(self.vo_header)
         res = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers, expect_errors=True)
         assert_equal(res.status, 200)
         token = str(res.header('X-Rucio-Auth-Token'))
@@ -143,6 +159,7 @@ class TestAccountRestApi():
         """ ACCOUNT (REST): send a POST with a non dictionary json body"""
         mw = []
         headers = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers.update(self.vo_header)
         res = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers, expect_errors=True)
         assert_equal(res.status, 200)
         token = str(res.header('X-Rucio-Auth-Token'))
@@ -160,6 +177,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
@@ -181,6 +199,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
@@ -194,6 +213,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
@@ -219,6 +239,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
@@ -232,6 +253,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
 
         assert_equal(res1.status, 200)
@@ -246,6 +268,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
 
         assert_equal(res1.status, 200)
@@ -274,6 +297,7 @@ class TestAccountRestApi():
         mw = []
 
         headers1 = {'X-Rucio-Account': 'root', 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
@@ -302,10 +326,11 @@ class TestAccountRestApi():
         account = account_name_generator()
         identity = uuid()
         password = 'secret'
-        add_account(account, 'USER', 'rucio@email.com', 'root')
+        add_account(account, 'USER', 'rucio@email.com', 'root', **self.vo)
         add_identity(identity, IdentityType.USERPASS, 'email@email.com', password)
-        add_account_identity(identity, IdentityType.USERPASS, InternalAccount(account), 'email@email.com')
+        add_account_identity(identity, IdentityType.USERPASS, InternalAccount(account, **self.vo), 'email@email.com')
         headers1 = {'X-Rucio-Account': account, 'X-Rucio-Username': identity, 'X-Rucio-Password': password}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         token = str(res1.header('X-Rucio-Auth-Token'))
 
@@ -327,6 +352,7 @@ class TestAccountRestApi():
         mw = []
         account = 'root'
         headers1 = {'X-Rucio-Account': account, 'X-Rucio-Username': 'ddmlab', 'X-Rucio-Password': 'secret'}
+        headers1.update(self.vo_header)
         res1 = TestApp(auth_app.wsgifunc(*mw)).get('/userpass', headers=headers1, expect_errors=True)
         assert_equal(res1.status, 200)
         token = str(res1.header('X-Rucio-Auth-Token'))
