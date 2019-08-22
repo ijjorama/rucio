@@ -14,6 +14,7 @@
 #
 # Authors:
 # - Andrew Lister <andrew.lister@stfc.ac.uk>, 2019
+# - Ian Johnson <ian.johnson@stfc.ac.uk>, 2019
 
 
 from rucio.api.permission import has_permission
@@ -22,7 +23,7 @@ from rucio.common.schema import validate_schema
 from rucio.core import vo as vo_core
 
 
-def add_vo(new_vo, issuer, description=None, email=None, vo='def'):
+def add_vo(new_vo, issuer, password, description=None, email=None, vo='def'):
     '''
     Add a new VO.
 
@@ -31,6 +32,7 @@ def add_vo(new_vo, issuer, description=None, email=None, vo='def'):
     :param email: A contact for the VO.
     :param issuer: The user issuing the command.
     :param vo: The vo of the user issuing the command.
+    :param password: The password to set for the root user of the new VO 
     '''
 
     validate_schema('vo', new_vo)
@@ -39,7 +41,7 @@ def add_vo(new_vo, issuer, description=None, email=None, vo='def'):
     if not has_permission(issuer=issuer, action='add_vo', kwargs=kwargs, vo=vo):
         raise exception.AccessDenied('Account {} cannot add a VO'.format(issuer))
 
-    vo_core.add_vo(vo=new_vo, description=description, email=email)
+    vo_core.add_vo(vo=new_vo, password=password, description=description, email=email)
 
 
 def list_vos(issuer, vo='def'):

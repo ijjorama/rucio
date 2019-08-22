@@ -14,6 +14,7 @@
 #
 # Authors:
 # - Andrew Lister <andrew.lister@stfc.ac.uk>, 2019
+# - Ian Johnson <ian.johnson@stfc.ac.uk>, 2019
 
 from sqlalchemy.exc import DatabaseError, IntegrityError
 
@@ -38,14 +39,15 @@ def vo_exists(vo, session=None):
 
 
 @transactional_session
-def add_vo(vo, description, email, session=None):
+def add_vo(vo, description, password, email, session=None):
     """
     Add a VO and setup a new root user.
-    New root user will have account name 'root' and a userpass identity with username: 'root@<vo>' and password: 'password'
+    New root user will have account name 'root' and a userpass identity with username: 'root@<vo>' and password from the rootpass parameter
 
     :param vo: 3-letter unique tag for a VO.
     :param descrition: Descriptive string for the VO (e.g. Full name).
     :param email: Contact email for the VO.
+    :param password: The password to set for the root user of the new VO
     :param session: The db session in use.
     """
 
@@ -70,7 +72,7 @@ def add_vo(vo, description, email, session=None):
                          account=new_root,
                          email=email,
                          default=False,
-                         password='password',
+                         password=password,
                          session=session)
 
     for ident in list_identities(account=InternalAccount('super_root', vo='def'), session=session):
